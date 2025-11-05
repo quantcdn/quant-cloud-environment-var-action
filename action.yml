@@ -1,0 +1,52 @@
+name: 'Quant Cloud Environment Variables'
+description: 'Manage environment variables in Quant Cloud environments'
+branding:
+  icon: 'settings'
+  color: 'blue'
+inputs:
+  api_key:
+    description: 'Quant API key'
+    required: true
+  organization:
+    description: 'Quant organisation ID'
+    required: true
+  app_name:
+    description: 'Name of your application'
+    required: true
+  environment_name:
+    description: 'Name of the environment'
+    required: true
+  base_url:
+    description: 'Quant Cloud API URL'
+    required: false
+    default: 'https://dashboard.quantcdn.io/api/v3'
+  operation:
+    description: 'Operation to perform: list, set, clear, delete'
+    required: false
+    default: 'list'
+  env_file:
+    description: 'Path to .env file (for set operation)'
+    required: false
+  json_vars:
+    description: 'JSON string of variables (for set operation)'
+    required: false
+  variables:
+    description: 'Newline or comma-separated KEY=VALUE pairs (for set operation)'
+    required: false
+  keys:
+    description: 'Newline or comma-separated list of variable keys to delete (for delete operation)'
+    required: false
+outputs:
+  variables:
+    description: 'JSON string of all variables (list operation)'
+  count:
+    description: 'Number of variables (list operation)'
+  updated_count:
+    description: 'Number of variables successfully set (set operation)'
+  deleted_count:
+    description: 'Number of variables successfully deleted (clear/delete operation)'
+  failed_count:
+    description: 'Number of variables that failed to update/delete'
+runs:
+  using: 'node20'
+  main: 'dist/index.js' 

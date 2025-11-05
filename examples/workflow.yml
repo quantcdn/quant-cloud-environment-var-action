@@ -1,0 +1,212 @@
+# Example GitHub Actions Workflow
+# This demonstrates various ways to use the Quant Cloud Environment Variables Action
+
+name: Manage Environment Variables
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: 'Operation to perform'
+        required: true
+        type: choice
+        options:
+          - list
+          - set
+          - clear
+          - delete
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+
+jobs:
+  # Example 1: List variables
+  list-variables:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.operation == 'list'
+    steps:
+      - name: List environment variables
+        id: list
+        uses: quantcdn/quant-cloud-environment-var-action@v1
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: my-app
+          environment_name: ${{ github.event.inputs.environment }}
+          operation: list
+      
+      - name: Show variable count
+        run: |
+          echo "Total variables: ${{ steps.list.outputs.count }}"
+          echo "Variables:"
+          echo '${{ steps.list.outputs.variables }}' | jq .
+
+  # Example 2: Set variables from .env file
+  set-from-env-file:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.operation == 'set'
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set variables from .env file
+        uses: quantcdn/quant-cloud-environment-var-action@v1
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: my-app
+          environment_name: ${{ github.event.inputs.environment }}
+          operation: set
+          env_file: .env.production
+
+  # Example 3: Set variables from JSON
+  set-from-json:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.operation == 'set'
+    steps:
+      - name: Set variables from JSON
+        uses: quantcdn/quant-cloud-environment-var-action@v1
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: my-app
+          environment_name: ${{ github.event.inputs.environment }}
+          operation: set
+          json_vars: |
+            {
+              "DATABASE_URL": "${{ secrets.DATABASE_URL }}",
+              "API_KEY": "${{ secrets.API_KEY }}",
+              "APP_ENV": "production",
+              "DEBUG": "false"
+            }
+
+  # Example 4: Set individual variables
+  set-individual:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.operation == 'set'
+    steps:
+      - name: Set individual variables
+        uses: quantcdn/quant-cloud-environment-var-action@v1
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: my-app
+          environment_name: ${{ github.event.inputs.environment }}
+          operation: set
+          variables: |
+            BUILD_NUMBER=${{ github.run_number }}
+            COMMIT_SHA=${{ github.sha }}
+            BRANCH_NAME=${{ github.ref_name }}
+            DEPLOYMENT_TIME=${{ github.event.head_commit.timestamp }}
+
+  # Example 5: Set from multiple sources
+  set-combined:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.operation == 'set'
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set variables from multiple sources
+        uses: quantcdn/quant-cloud-environment-var-action@v1
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: my-app
+          environment_name: ${{ github.event.inputs.environment }}
+          operation: set
+          env_file: .env.production
+          json_vars: |
+            {
+              "DATABASE_URL": "${{ secrets.DATABASE_URL }}"
+            }
+          variables: |
+            BUILD_NUMBER=${{ github.run_number }}
+            COMMIT_SHA=${{ github.sha }}
+
+  # Example 6: Clear all variables
+  clear-variables:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.operation == 'clear'
+    steps:
+      - name: Clear all variables
+        uses: quantcdn/quant-cloud-environment-var-action@v1
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: my-app
+          environment_name: ${{ github.event.inputs.environment }}
+          operation: clear
+
+  # Example 7: Delete specific variables
+  delete-variables:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.operation == 'delete'
+    steps:
+      - name: Delete specific variables
+        uses: quantcdn/quant-cloud-environment-var-action@v1
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: my-app
+          environment_name: ${{ github.event.inputs.environment }}
+          operation: delete
+          keys: |
+            OLD_VAR_1
+            OLD_VAR_2
+            DEPRECATED_KEY
+
+  # Example 8: Complete deployment workflow
+  deploy-with-env-vars:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      # Step 1: Clear old variables
+      - name: Clear existing variables
+        uses: quantcdn/quant-cloud-environment-var-action@v1
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: my-app
+          environment_name: production
+          operation: clear
+      
+      # Step 2: Set new variables
+      - name: Set production variables
+        id: set-vars
+        uses: quantcdn/quant-cloud-environment-var-action@v1
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: my-app
+          environment_name: production
+          operation: set
+          env_file: .env.production
+          variables: |
+            BUILD_NUMBER=${{ github.run_number }}
+            COMMIT_SHA=${{ github.sha }}
+            DEPLOYED_BY=${{ github.actor }}
+            DEPLOYMENT_TIME=${{ github.event.head_commit.timestamp }}
+      
+      # Step 3: Verify variables were set
+      - name: List variables for verification
+        id: verify
+        uses: quantcdn/quant-cloud-environment-var-action@v1
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: my-app
+          environment_name: production
+          operation: list
+      
+      - name: Show deployment summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Variables set: ${{ steps.set-vars.outputs.updated_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Failed: ${{ steps.set-vars.outputs.failed_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Total variables: ${{ steps.verify.outputs.count }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Variable Keys" >> $GITHUB_STEP_SUMMARY
+          echo '${{ steps.verify.outputs.variables }}' | jq -r 'keys[]' | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY
+
