@@ -3,17 +3,19 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {
     VariablesApi,
-    UpdateEnvironmentVariableRequest
+    UpdateEnvironmentVariableRequest,
+    BulkSetEnvironmentVariablesRequest
 } from '@quantcdn/quant-client';
+import { Configuration } from '@quantcdn/quant-client';
 
-const apiOpts = (apiKey: string) => {
-    return {
-        applyToRequest: (requestOptions: any) => {
-            if (requestOptions && requestOptions.headers) {
-                requestOptions.headers["Authorization"] = `Bearer ${apiKey}`;
-            }
-        }
-    }
+/**
+ * Create API configuration with authentication
+ */
+const createApiConfig = (apiKey: string, baseUrl: string): Configuration => {
+    return new Configuration({
+        basePath: baseUrl,
+        accessToken: apiKey
+    });
 }
 
 /**
@@ -109,11 +111,12 @@ async function run(): Promise<void> {
         const organisation = core.getInput('organization', { required: true });
         const environmentName = core.getInput('environment_name', { required: true });
         const operation = core.getInput('operation', { required: false }) || 'list';
+        const replace = core.getInput('replace', { required: false }) === 'true';
 
         const baseUrl = core.getInput('base_url') || 'https://dashboard.quantcdn.io/api/v3';
 
-        const client = new VariablesApi(baseUrl);
-        client.setDefaultAuthentication(apiOpts(apiKey));
+        const config = createApiConfig(apiKey, baseUrl);
+        const client = new VariablesApi(config);
 
         core.info('Quant Cloud Environment Variables Action');
         core.info(`Operation: ${operation}`);
@@ -121,8 +124,8 @@ async function run(): Promise<void> {
         // Handle LIST operation
         if (operation === 'list') {
             core.info(`Listing variables for environment: ${environmentName}`);
-            const response = await client.listEnvironmentVariables(organisation, appName, environmentName);
-            const variables = response.body || {};
+            const response = await client.listEnvironmentVariables(organisation, appName, environmentName) as any;
+            const variables = (response.data || {}) as Record<string, string>;
             
             core.info(`Found ${Object.keys(variables).length} variable(s)`);
             
@@ -142,36 +145,21 @@ async function run(): Promise<void> {
         if (operation === 'clear') {
             core.info(`Clearing all variables for environment: ${environmentName}`);
             
-            // First, list all variables
-            const response = await client.listEnvironmentVariables(organisation, appName, environmentName);
-            const variables = response.body || {};
-            const keys = Object.keys(variables);
+            // Use bulk endpoint with empty array for fast clear
+            const bulkRequest: BulkSetEnvironmentVariablesRequest = {
+                environment: []
+            };
             
-            if (keys.length === 0) {
-                core.info('No variables to clear');
-                return;
+            try {
+                await client.bulkSetEnvironmentVariables(organisation, appName, environmentName, bulkRequest);
+                core.info('✓ All variables cleared successfully');
+                core.setOutput('deleted_count', 'all');
+                core.setOutput('failed_count', 0);
+            } catch (error) {
+                const apiError = error as Error & ApiError;
+                core.error(`Failed to clear variables: ${apiError.body?.message || (error as Error).message}`);
+                throw error;
             }
-            
-            core.info(`Deleting ${keys.length} variable(s)...`);
-            
-            let deleted = 0;
-            let failed = 0;
-            
-            for (const key of keys) {
-                try {
-                    await client.deleteEnvironmentVariable(organisation, appName, environmentName, key);
-                    core.info(`  ✓ Deleted: ${key}`);
-                    deleted++;
-                } catch (error) {
-                    const apiError = error as Error & ApiError;
-                    core.warning(`  ✗ Failed to delete ${key}: ${apiError.body?.message || (error as Error).message}`);
-                    failed++;
-                }
-            }
-            
-            core.info(`Cleared ${deleted} variable(s), ${failed} failed`);
-            core.setOutput('deleted_count', deleted);
-            core.setOutput('failed_count', failed);
             
             return;
         }
@@ -232,27 +220,63 @@ async function run(): Promise<void> {
                 return;
             }
             
-            core.info(`Setting ${keys.length} variable(s)...`);
+            core.info(`Setting ${keys.length} variable(s)...${replace ? ' (replace mode - bulk API)' : ' (merge mode - individual updates)'}`);
             
-            let updated = 0;
-            let failed = 0;
-            
-            for (const key of keys) {
-                try {
-                    const request: UpdateEnvironmentVariableRequest = { value: vars[key] };
-                    await client.updateEnvironmentVariable(organisation, appName, environmentName, key, request);
-                    core.info(`  ✓ Set: ${key}`);
-                    updated++;
-                } catch (error) {
-                    const apiError = error as Error & ApiError;
-                    core.warning(`  ✗ Failed to set ${key}: ${apiError.body?.message || (error as Error).message}`);
-                    failed++;
+            try {
+                if (replace) {
+                    // Replace mode: Use bulk API (replaces ALL variables)
+                    const bulkRequest: BulkSetEnvironmentVariablesRequest = {
+                        environment: keys.map(key => ({
+                            name: key,
+                            value: vars[key]
+                        }))
+                    };
+                    
+                    await client.bulkSetEnvironmentVariables(organisation, appName, environmentName, bulkRequest);
+                    core.info(`✓ Successfully replaced all variables with ${keys.length} new variable(s)`);
+                    
+                    // Log individual variables (keys only for security)
+                    for (const key of keys) {
+                        core.info(`  - ${key}`);
+                    }
+                    
+                    core.setOutput('updated_count', keys.length);
+                    core.setOutput('failed_count', 0);
+                } else {
+                    // Merge mode: Update each variable individually (preserves existing vars)
+                    let updated = 0;
+                    let failed = 0;
+                    
+                    for (const key of keys) {
+                        try {
+                            const request: UpdateEnvironmentVariableRequest = { value: vars[key] };
+                            await client.updateEnvironmentVariable(organisation, appName, environmentName, key, request);
+                            core.info(`  ✓ Set: ${key}`);
+                            updated++;
+                        } catch (error) {
+                            const apiError = error as Error & ApiError;
+                            core.warning(`  ✗ Failed to set ${key}: ${apiError.body?.message || (error as Error).message}`);
+                            failed++;
+                        }
+                    }
+                    
+                    core.info(`Set ${updated} variable(s), ${failed} failed`);
+                    core.setOutput('updated_count', updated);
+                    core.setOutput('failed_count', failed);
+                    
+                    if (failed > 0) {
+                        throw new Error(`Failed to set ${failed} variable(s)`);
+                    }
                 }
+            } catch (error) {
+                if (replace) {
+                    const apiError = error as Error & ApiError;
+                    core.error(`Failed to set variables: ${apiError.body?.message || (error as Error).message}`);
+                    core.setOutput('updated_count', 0);
+                    core.setOutput('failed_count', keys.length);
+                }
+                throw error;
             }
-            
-            core.info(`Set ${updated} variable(s), ${failed} failed`);
-            core.setOutput('updated_count', updated);
-            core.setOutput('failed_count', failed);
             
             return;
         }

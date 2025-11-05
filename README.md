@@ -9,7 +9,9 @@ This GitHub Action manages environment variables in Quant Cloud environments.
   - .env files
   - JSON strings
   - Individual KEY=VALUE pairs
-- **Clear** all variables in an environment
+  - **Merge mode** (default): Updates/adds variables individually, preserves existing ones
+  - **Replace mode** (`replace: true`): Uses bulk API to replace ALL variables at once
+- **Clear** all variables in an environment (fast bulk operation)
 - **Delete** specific variables by key
 
 ## Usage Examples
@@ -38,6 +40,24 @@ This GitHub Action manages environment variables in Quant Cloud environments.
     operation: set
     env_file: .env.production
 ```
+
+### Set Variables with Replace Mode
+
+Replace **ALL** existing variables (removes any not in the input):
+
+```yaml
+- uses: quantcdn/quant-cloud-environment-var-action@v1
+  with:
+    api_key: ${{ secrets.QUANT_API_KEY }}
+    organization: your-org-id
+    app_name: my-app
+    environment_name: production
+    operation: set
+    replace: true  # Removes all existing vars not in .env.production
+    env_file: .env.production
+```
+
+**⚠️ Warning**: With `replace: true`, any existing variables NOT in your input will be deleted!
 
 ### Set Variables from JSON
 
@@ -181,6 +201,7 @@ jobs:
 | `app_name` | Name of your application | Yes | - |
 | `environment_name` | Name of the environment | Yes | - |
 | `operation` | Operation to perform: `list`, `set`, `clear`, `delete` | No | `list` |
+| `replace` | Replace ALL variables (removes any not in input). Uses bulk API. Only for `set` operation. | No | `false` |
 | `base_url` | Quant Cloud API URL | No | `https://dashboard.quantcdn.io/api/v3` |
 | `env_file` | Path to .env file (for `set` operation) | No | - |
 | `json_vars` | JSON string of variables (for `set` operation) | No | - |
@@ -205,7 +226,21 @@ Lists all environment variables for the specified environment. Variable keys are
 
 ### `set`
 
-Sets or updates environment variables. Supports three input methods that can be combined:
+Sets or updates environment variables. Behavior depends on the `replace` parameter:
+
+**Merge Mode** (default, `replace: false`):
+- Updates each variable individually via separate API calls
+- **Preserves existing variables** not in your input
+- Safe for adding/updating specific variables
+- Slower for large batches but safer
+
+**Replace Mode** (`replace: true`):
+- Uses the **fast bulk API** (single API call)
+- **Replaces ALL variables** - removes any not in your input
+- Fast for complete environment resets
+- ⚠️ **Destructive**: Deletes existing variables not specified
+
+Supports three input methods that can be combined:
 
 1. **env_file**: Path to a .env file
    - Supports `KEY=VALUE` format
@@ -223,7 +258,7 @@ Variables are merged with priority: env_file → json_vars → variables (later 
 
 ### `clear`
 
-Deletes all environment variables in the specified environment. Lists variables first, then deletes each one.
+Deletes all environment variables in the specified environment using the **fast bulk API**. Sends an empty array to clear all variables in a single operation.
 
 ### `delete`
 
