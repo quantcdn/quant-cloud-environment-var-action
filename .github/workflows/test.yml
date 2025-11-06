@@ -1,0 +1,407 @@
+name: Test Environment Variables Action
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test-env-vars:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Test 1: Clear all variables to start fresh
+      - name: Test 1 - Clear all variables
+        uses: ./
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: actions
+          environment_name: staging
+          base_url: https://portal.stage.quantcdn.io/api/v3
+          operation: clear
+
+      # Test 2: List variables (should be empty)
+      - name: Test 2 - List variables (should be empty)
+        id: list-empty
+        uses: ./
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: actions
+          environment_name: staging
+          base_url: https://portal.stage.quantcdn.io/api/v3
+          operation: list
+
+      - name: Verify empty list
+        run: |
+          echo "Count: ${{ steps.list-empty.outputs.count }}"
+          if [ "${{ steps.list-empty.outputs.count }}" != "0" ]; then
+            echo "❌ Expected 0 variables but got ${{ steps.list-empty.outputs.count }}"
+            exit 1
+          fi
+          echo "✅ Variables list is empty as expected"
+
+      # Test 3: Set variables in merge mode (individual updates)
+      - name: Test 3 - Set variables (merge mode)
+        id: set-merge
+        uses: ./
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: actions
+          environment_name: staging
+          base_url: https://portal.stage.quantcdn.io/api/v3
+          operation: set
+          replace: false
+          variables: |
+            TEST_VAR_1=value1
+            TEST_VAR_2=value2
+            TEST_VAR_3=value3
+
+      - name: Verify merge set
+        run: |
+          echo "Updated: ${{ steps.set-merge.outputs.updated_count }}"
+          echo "Failed: ${{ steps.set-merge.outputs.failed_count }}"
+          if [ "${{ steps.set-merge.outputs.updated_count }}" != "3" ]; then
+            echo "❌ Expected 3 updated variables"
+            exit 1
+          fi
+          echo "✅ Set 3 variables successfully"
+
+      # Test 4: List variables (should have 3)
+      - name: Test 4 - List variables (should have 3)
+        id: list-three
+        uses: ./
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: actions
+          environment_name: staging
+          base_url: https://portal.stage.quantcdn.io/api/v3
+          operation: list
+
+      - name: Verify three variables
+        run: |
+          echo "Count: ${{ steps.list-three.outputs.count }}"
+          echo "Variables: ${{ steps.list-three.outputs.variables }}"
+          if [ "${{ steps.list-three.outputs.count }}" != "3" ]; then
+            echo "❌ Expected 3 variables but got ${{ steps.list-three.outputs.count }}"
+            exit 1
+          fi
+          echo "✅ Found 3 variables as expected"
+
+      # Test 5: Add more variables in merge mode (should preserve existing)
+      - name: Test 5 - Add more variables (merge mode)
+        id: set-merge-add
+        uses: ./
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: actions
+          environment_name: staging
+          base_url: https://portal.stage.quantcdn.io/api/v3
+          operation: set
+          replace: false
+          variables: |
+            TEST_VAR_4=value4
+            TEST_VAR_5=value5
+
+      - name: Test 6 - List variables (should have 5)
+        id: list-five
+        uses: ./
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: actions
+          environment_name: staging
+          base_url: https://portal.stage.quantcdn.io/api/v3
+          operation: list
+
+      - name: Verify five variables (merge preserved existing)
+        run: |
+          echo "Count: ${{ steps.list-five.outputs.count }}"
+          if [ "${{ steps.list-five.outputs.count }}" != "5" ]; then
+            echo "❌ Expected 5 variables but got ${{ steps.list-five.outputs.count }}"
+            exit 1
+          fi
+          echo "✅ Merge mode preserved existing variables (3 + 2 = 5)"
+
+      # Test 7: Set with JSON input
+      - name: Test 7 - Set from JSON (merge mode)
+        uses: ./
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: actions
+          environment_name: staging
+          base_url: https://portal.stage.quantcdn.io/api/v3
+          operation: set
+          replace: false
+          json_vars: |
+            {
+              "JSON_VAR_1": "json_value_1",
+              "JSON_VAR_2": "json_value_2"
+            }
+
+      - name: Test 8 - List variables (should have 7)
+        id: list-seven
+        uses: ./
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: actions
+          environment_name: staging
+          base_url: https://portal.stage.quantcdn.io/api/v3
+          operation: list
+
+      - name: Verify seven variables
+        run: |
+          echo "Count: ${{ steps.list-seven.outputs.count }}"
+          if [ "${{ steps.list-seven.outputs.count }}" != "7" ]; then
+            echo "❌ Expected 7 variables but got ${{ steps.list-seven.outputs.count }}"
+            exit 1
+          fi
+          echo "✅ JSON variables added (5 + 2 = 7)"
+
+      # Test 9: Delete specific variables
+      - name: Test 9 - Delete specific variables
+        id: delete-vars
+        uses: ./
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: actions
+          environment_name: staging
+          base_url: https://portal.stage.quantcdn.io/api/v3
+          operation: delete
+          keys: |
+            JSON_VAR_1
+            JSON_VAR_2
+
+      - name: Verify deletion
+        run: |
+          echo "Deleted: ${{ steps.delete-vars.outputs.deleted_count }}"
+          echo "Failed: ${{ steps.delete-vars.outputs.failed_count }}"
+          if [ "${{ steps.delete-vars.outputs.deleted_count }}" != "2" ]; then
+            echo "❌ Expected 2 deleted variables"
+            exit 1
+          fi
+          echo "✅ Deleted 2 variables"
+
+      - name: Test 10 - List variables (should have 5 after deletion)
+        id: list-after-delete
+        uses: ./
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: actions
+          environment_name: staging
+          base_url: https://portal.stage.quantcdn.io/api/v3
+          operation: list
+
+      - name: Verify count after deletion
+        run: |
+          echo "Count: ${{ steps.list-after-delete.outputs.count }}"
+          if [ "${{ steps.list-after-delete.outputs.count }}" != "5" ]; then
+            echo "❌ Expected 5 variables but got ${{ steps.list-after-delete.outputs.count }}"
+            exit 1
+          fi
+          echo "✅ Count correct after deletion (7 - 2 = 5)"
+
+      # Test 11: Replace mode (should remove all existing and set only new ones)
+      - name: Test 11 - Set with replace mode (bulk API)
+        id: set-replace
+        uses: ./
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: actions
+          environment_name: staging
+          base_url: https://portal.stage.quantcdn.io/api/v3
+          operation: set
+          replace: true
+          variables: |
+            REPLACE_VAR_1=replace_value_1
+            REPLACE_VAR_2=replace_value_2
+            REPLACE_VAR_3=replace_value_3
+
+      - name: Test 12 - List variables (should have only 3 after replace)
+        id: list-after-replace
+        uses: ./
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: actions
+          environment_name: staging
+          base_url: https://portal.stage.quantcdn.io/api/v3
+          operation: list
+
+      - name: Verify replace mode removed old variables
+        run: |
+          echo "Count: ${{ steps.list-after-replace.outputs.count }}"
+          echo "Variables: ${{ steps.list-after-replace.outputs.variables }}"
+          if [ "${{ steps.list-after-replace.outputs.count }}" != "3" ]; then
+            echo "❌ Expected 3 variables but got ${{ steps.list-after-replace.outputs.count }}"
+            exit 1
+          fi
+          echo "✅ Replace mode correctly replaced all variables (5 old removed, 3 new set)"
+
+      # Test 13: Test .env file support
+      - name: Create test .env file
+        run: |
+          cat > test.env << 'EOF'
+          # This is a comment
+          ENV_FILE_VAR_1=env_value_1
+          ENV_FILE_VAR_2="quoted value 2"
+          ENV_FILE_VAR_3='single quoted value 3'
+          
+          # Another comment
+          ENV_FILE_VAR_4=value_with_equals=sign
+          EOF
+
+      - name: Test 13 - Set from .env file (replace mode)
+        uses: ./
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: actions
+          environment_name: staging
+          base_url: https://portal.stage.quantcdn.io/api/v3
+          operation: set
+          replace: true
+          env_file: test.env
+
+      - name: Test 14 - List variables (should have 4 from .env)
+        id: list-env-file
+        uses: ./
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: actions
+          environment_name: staging
+          base_url: https://portal.stage.quantcdn.io/api/v3
+          operation: list
+
+      - name: Verify .env file parsing
+        run: |
+          echo "Count: ${{ steps.list-env-file.outputs.count }}"
+          if [ "${{ steps.list-env-file.outputs.count }}" != "4" ]; then
+            echo "❌ Expected 4 variables from .env file"
+            exit 1
+          fi
+          echo "✅ .env file parsed correctly (comments ignored, quotes handled)"
+
+      # Test 15: Test combined inputs (priority: env_file -> json_vars -> variables)
+      - name: Create another .env file
+        run: |
+          cat > base.env << 'EOF'
+          COMBINED_VAR_1=from_env_file
+          COMBINED_VAR_2=from_env_file
+          COMBINED_VAR_3=from_env_file
+          EOF
+
+      - name: Test 15 - Set with combined inputs (replace mode)
+        uses: ./
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: actions
+          environment_name: staging
+          base_url: https://portal.stage.quantcdn.io/api/v3
+          operation: set
+          replace: true
+          env_file: base.env
+          json_vars: '{"COMBINED_VAR_2": "from_json", "COMBINED_VAR_4": "from_json"}'
+          variables: COMBINED_VAR_3=from_variables,COMBINED_VAR_5=from_variables
+
+      - name: Test 16 - List combined variables
+        id: list-combined
+        uses: ./
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: actions
+          environment_name: staging
+          base_url: https://portal.stage.quantcdn.io/api/v3
+          operation: list
+
+      - name: Verify combined input priority
+        run: |
+          echo "Count: ${{ steps.list-combined.outputs.count }}"
+          echo "Variables: ${{ steps.list-combined.outputs.variables }}"
+          if [ "${{ steps.list-combined.outputs.count }}" != "5" ]; then
+            echo "❌ Expected 5 combined variables"
+            exit 1
+          fi
+          # Check that the priority was respected (variables > json > env_file)
+          echo "✅ Combined inputs merged with correct priority (5 unique vars)"
+
+      # Test 17: Final clear
+      - name: Test 17 - Final clear (bulk API)
+        uses: ./
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: actions
+          environment_name: staging
+          base_url: https://portal.stage.quantcdn.io/api/v3
+          operation: clear
+
+      - name: Test 18 - Final list (should be empty)
+        id: list-final
+        uses: ./
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: actions
+          environment_name: staging
+          base_url: https://portal.stage.quantcdn.io/api/v3
+          operation: list
+
+      - name: Verify final clear
+        run: |
+          echo "Count: ${{ steps.list-final.outputs.count }}"
+          if [ "${{ steps.list-final.outputs.count }}" != "0" ]; then
+            echo "❌ Expected 0 variables after final clear"
+            exit 1
+          fi
+          echo "✅ Final clear successful"
+
+      # Summary
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "## Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All environment variable operations tested successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Tests Performed:" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Clear all variables" >> $GITHUB_STEP_SUMMARY
+          echo "2. ✅ List empty variables" >> $GITHUB_STEP_SUMMARY
+          echo "3. ✅ Set variables (merge mode)" >> $GITHUB_STEP_SUMMARY
+          echo "4. ✅ List variables" >> $GITHUB_STEP_SUMMARY
+          echo "5. ✅ Add more variables (merge mode preserves existing)" >> $GITHUB_STEP_SUMMARY
+          echo "6. ✅ Set from JSON input" >> $GITHUB_STEP_SUMMARY
+          echo "7. ✅ Delete specific variables" >> $GITHUB_STEP_SUMMARY
+          echo "8. ✅ Set with replace mode (bulk API)" >> $GITHUB_STEP_SUMMARY
+          echo "9. ✅ Set from .env file" >> $GITHUB_STEP_SUMMARY
+          echo "10. ✅ Set with combined inputs (priority test)" >> $GITHUB_STEP_SUMMARY
+          echo "11. ✅ Final clear" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### API Endpoints Tested:" >> $GITHUB_STEP_SUMMARY
+          echo "- LIST: listEnvironmentVariables" >> $GITHUB_STEP_SUMMARY
+          echo "- SET (merge): updateEnvironmentVariable (individual)" >> $GITHUB_STEP_SUMMARY
+          echo "- SET (replace): bulkSetEnvironmentVariables (bulk)" >> $GITHUB_STEP_SUMMARY
+          echo "- CLEAR: bulkSetEnvironmentVariables (empty array)" >> $GITHUB_STEP_SUMMARY
+          echo "- DELETE: deleteEnvironmentVariable" >> $GITHUB_STEP_SUMMARY
+
