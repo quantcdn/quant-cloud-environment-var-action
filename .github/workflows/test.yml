@@ -27,7 +27,7 @@ jobs:
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io/api/v3
+          base_url: https://portal.stage.quantcdn.io
           operation: clear
 
       # Test 2: List variables (should be empty)
@@ -39,7 +39,7 @@ jobs:
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io/api/v3
+          base_url: https://portal.stage.quantcdn.io
           operation: list
 
       - name: Verify empty list
@@ -60,7 +60,7 @@ jobs:
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io/api/v3
+          base_url: https://portal.stage.quantcdn.io
           operation: set
           replace: false
           variables: |
@@ -87,7 +87,7 @@ jobs:
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io/api/v3
+          base_url: https://portal.stage.quantcdn.io
           operation: list
 
       - name: Verify three variables
@@ -109,7 +109,7 @@ jobs:
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io/api/v3
+          base_url: https://portal.stage.quantcdn.io
           operation: set
           replace: false
           variables: |
@@ -124,7 +124,7 @@ jobs:
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io/api/v3
+          base_url: https://portal.stage.quantcdn.io
           operation: list
 
       - name: Verify five variables (merge preserved existing)
@@ -144,7 +144,7 @@ jobs:
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io/api/v3
+          base_url: https://portal.stage.quantcdn.io
           operation: set
           replace: false
           json_vars: |
@@ -161,7 +161,7 @@ jobs:
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io/api/v3
+          base_url: https://portal.stage.quantcdn.io
           operation: list
 
       - name: Verify seven variables
@@ -182,7 +182,7 @@ jobs:
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io/api/v3
+          base_url: https://portal.stage.quantcdn.io
           operation: delete
           keys: |
             JSON_VAR_1
@@ -206,7 +206,7 @@ jobs:
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io/api/v3
+          base_url: https://portal.stage.quantcdn.io
           operation: list
 
       - name: Verify count after deletion
@@ -227,7 +227,7 @@ jobs:
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io/api/v3
+          base_url: https://portal.stage.quantcdn.io
           operation: set
           replace: true
           variables: |
@@ -243,7 +243,7 @@ jobs:
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io/api/v3
+          base_url: https://portal.stage.quantcdn.io
           operation: list
 
       - name: Verify replace mode removed old variables
@@ -276,7 +276,7 @@ jobs:
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io/api/v3
+          base_url: https://portal.stage.quantcdn.io
           operation: set
           replace: true
           env_file: test.env
@@ -289,7 +289,7 @@ jobs:
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io/api/v3
+          base_url: https://portal.stage.quantcdn.io
           operation: list
 
       - name: Verify .env file parsing
@@ -317,7 +317,7 @@ jobs:
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io/api/v3
+          base_url: https://portal.stage.quantcdn.io
           operation: set
           replace: true
           env_file: base.env
@@ -332,7 +332,7 @@ jobs:
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io/api/v3
+          base_url: https://portal.stage.quantcdn.io
           operation: list
 
       - name: Verify combined input priority
@@ -354,7 +354,7 @@ jobs:
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io/api/v3
+          base_url: https://portal.stage.quantcdn.io
           operation: clear
 
       - name: Test 18 - Final list (should be empty)
@@ -365,7 +365,7 @@ jobs:
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io/api/v3
+          base_url: https://portal.stage.quantcdn.io
           operation: list
 
       - name: Verify final clear

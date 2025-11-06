@@ -202,7 +202,7 @@ jobs:
 | `environment_name` | Name of the environment | Yes | - |
 | `operation` | Operation to perform: `list`, `set`, `clear`, `delete` | No | `list` |
 | `replace` | Replace ALL variables (removes any not in input). Uses bulk API. Only for `set` operation. | No | `false` |
-| `base_url` | Quant Cloud API URL | No | `https://dashboard.quantcdn.io/api/v3` |
+| `base_url` | Quant Cloud API base URL | No | `https://dashboard.quantcdn.io` |
 | `env_file` | Path to .env file (for `set` operation) | No | - |
 | `json_vars` | JSON string of variables (for `set` operation) | No | - |
 | `variables` | Newline or comma-separated KEY=VALUE pairs (for `set` operation) | No | - |

@@ -17,9 +17,9 @@ inputs:
     description: 'Name of the environment'
     required: true
   base_url:
-    description: 'Quant Cloud API URL'
+    description: 'Quant Cloud API base URL'
     required: false
-    default: 'https://dashboard.quantcdn.io/api/v3'
+    default: 'https://dashboard.quantcdn.io'
   operation:
     description: 'Operation to perform: list, set, clear, delete'
     required: false
