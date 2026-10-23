@@ -17,7 +17,7 @@ inputs:
     description: 'Name of the environment'
     required: true
   base_url:
-    description: 'Quant Cloud API base URL'
+    description: 'Quant Cloud API base URL. A trailing /api/v3 is stripped.'
     required: false
     default: 'https://dashboard.quantcdn.io'
   operation:
