@@ -88,6 +88,13 @@ function parseVariables(
     return result;
 }
 
+/**
+ * Strip a trailing slash, /api/v3 or /api so the client does not double the path.
+ */
+function normaliseBaseUrl(url: string): string {
+    return url.replace(/\/+$/, '').replace(/\/api(\/v3)?$/, '');
+}
+
 interface ApiError {
     statusCode?: number;
     body?: {
@@ -113,7 +120,8 @@ async function run(): Promise<void> {
         const operation = core.getInput('operation', { required: false }) || 'list';
         const replace = core.getInput('replace', { required: false }) === 'true';
 
-        const baseUrl = core.getInput('base_url') || 'https://dashboard.quantcdn.io/api/v3';
+        // Client paths already include /api/v3, so strip it from a user-supplied URL.
+        const baseUrl = normaliseBaseUrl(core.getInput('base_url') || 'https://dashboard.quantcdn.io');
 
         const config = createApiConfig(apiKey, baseUrl);
         const client = new VariablesApi(config);

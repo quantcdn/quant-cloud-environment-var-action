@@ -42469,6 +42469,12 @@ function parseVariables(envFile, jsonVars, variables) {
     return result;
 }
 /**
+ * Strip a trailing slash, /api/v3 or /api so the client does not double the path.
+ */
+function normaliseBaseUrl(url) {
+    return url.replace(/\/+$/, '').replace(/\/api(\/v3)?$/, '');
+}
+/**
  * This action manages environment variables in Quant Cloud.
  *
  * Operations:
@@ -42485,7 +42491,8 @@ async function run() {
         const environmentName = core.getInput('environment_name', { required: true });
         const operation = core.getInput('operation', { required: false }) || 'list';
         const replace = core.getInput('replace', { required: false }) === 'true';
-        const baseUrl = core.getInput('base_url') || 'https://dashboard.quantcdn.io/api/v3';
+        // Client paths already include /api/v3, so strip it from a user-supplied URL.
+        const baseUrl = normaliseBaseUrl(core.getInput('base_url') || 'https://dashboard.quantcdn.io');
         const config = createApiConfig(apiKey, baseUrl);
         const client = new quant_client_1.VariablesApi(config);
         core.info('Quant Cloud Environment Variables Action');
