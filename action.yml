@@ -53,4 +53,5 @@ outputs:
     description: 'Number of variables that failed to update/delete'
 runs:
   using: 'node24'
+  pre: 'runtime-check.cjs'
   main: 'dist/index.js' 
