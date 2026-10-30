@@ -1,4 +1,4 @@
-name: Test Environment Variables Action
+name: Test Environment Variables Action API contract
 
 on:
   workflow_dispatch:
@@ -12,22 +12,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
-          node-version: '20'
+          node-version: '24'
+
+      - name: Start isolated stateful API fixture
+        run: |
+          node security-tests/mock-api.cjs > "$RUNNER_TEMP/quant-api-fixture.log" 2>&1 &
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:18765/health; then exit 0; fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/quant-api-fixture.log"
+          exit 1
 
       # Test 1: Clear all variables to start fresh
       - name: Test 1 - Clear all variables
         uses: ./
         with:
-          api_key: ${{ secrets.QUANT_API_KEY }}
-          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          api_key: fixture-api-key-not-real
+          organization: ci-fixture
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io
+          base_url: http://127.0.0.1:18765
           operation: clear
 
       # Test 2: List variables (should be empty)
@@ -35,11 +45,11 @@ jobs:
         id: list-empty
         uses: ./
         with:
-          api_key: ${{ secrets.QUANT_API_KEY }}
-          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          api_key: fixture-api-key-not-real
+          organization: ci-fixture
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io
+          base_url: http://127.0.0.1:18765
           operation: list
 
       - name: Verify empty list
@@ -56,11 +66,11 @@ jobs:
         id: set-merge
         uses: ./
         with:
-          api_key: ${{ secrets.QUANT_API_KEY }}
-          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          api_key: fixture-api-key-not-real
+          organization: ci-fixture
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io
+          base_url: http://127.0.0.1:18765
           operation: set
           replace: false
           variables: |
@@ -83,11 +93,11 @@ jobs:
         id: list-three
         uses: ./
         with:
-          api_key: ${{ secrets.QUANT_API_KEY }}
-          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          api_key: fixture-api-key-not-real
+          organization: ci-fixture
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io
+          base_url: http://127.0.0.1:18765
           operation: list
 
       - name: Verify three variables
@@ -105,11 +115,11 @@ jobs:
         id: set-merge-add
         uses: ./
         with:
-          api_key: ${{ secrets.QUANT_API_KEY }}
-          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          api_key: fixture-api-key-not-real
+          organization: ci-fixture
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io
+          base_url: http://127.0.0.1:18765
           operation: set
           replace: false
           variables: |
@@ -120,11 +130,11 @@ jobs:
         id: list-five
         uses: ./
         with:
-          api_key: ${{ secrets.QUANT_API_KEY }}
-          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          api_key: fixture-api-key-not-real
+          organization: ci-fixture
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io
+          base_url: http://127.0.0.1:18765
           operation: list
 
       - name: Verify five variables (merge preserved existing)
@@ -140,11 +150,11 @@ jobs:
       - name: Test 7 - Set from JSON (merge mode)
         uses: ./
         with:
-          api_key: ${{ secrets.QUANT_API_KEY }}
-          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          api_key: fixture-api-key-not-real
+          organization: ci-fixture
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io
+          base_url: http://127.0.0.1:18765
           operation: set
           replace: false
           json_vars: |
@@ -157,11 +167,11 @@ jobs:
         id: list-seven
         uses: ./
         with:
-          api_key: ${{ secrets.QUANT_API_KEY }}
-          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          api_key: fixture-api-key-not-real
+          organization: ci-fixture
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io
+          base_url: http://127.0.0.1:18765
           operation: list
 
       - name: Verify seven variables
@@ -178,11 +188,11 @@ jobs:
         id: delete-vars
         uses: ./
         with:
-          api_key: ${{ secrets.QUANT_API_KEY }}
-          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          api_key: fixture-api-key-not-real
+          organization: ci-fixture
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io
+          base_url: http://127.0.0.1:18765
           operation: delete
           keys: |
             JSON_VAR_1
@@ -202,11 +212,11 @@ jobs:
         id: list-after-delete
         uses: ./
         with:
-          api_key: ${{ secrets.QUANT_API_KEY }}
-          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          api_key: fixture-api-key-not-real
+          organization: ci-fixture
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io
+          base_url: http://127.0.0.1:18765
           operation: list
 
       - name: Verify count after deletion
@@ -223,11 +233,11 @@ jobs:
         id: set-replace
         uses: ./
         with:
-          api_key: ${{ secrets.QUANT_API_KEY }}
-          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          api_key: fixture-api-key-not-real
+          organization: ci-fixture
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io
+          base_url: http://127.0.0.1:18765
           operation: set
           replace: true
           variables: |
@@ -239,11 +249,11 @@ jobs:
         id: list-after-replace
         uses: ./
         with:
-          api_key: ${{ secrets.QUANT_API_KEY }}
-          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          api_key: fixture-api-key-not-real
+          organization: ci-fixture
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io
+          base_url: http://127.0.0.1:18765
           operation: list
 
       - name: Verify replace mode removed old variables
@@ -272,11 +282,11 @@ jobs:
       - name: Test 13 - Set from .env file (replace mode)
         uses: ./
         with:
-          api_key: ${{ secrets.QUANT_API_KEY }}
-          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          api_key: fixture-api-key-not-real
+          organization: ci-fixture
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io
+          base_url: http://127.0.0.1:18765
           operation: set
           replace: true
           env_file: test.env
@@ -285,11 +295,11 @@ jobs:
         id: list-env-file
         uses: ./
         with:
-          api_key: ${{ secrets.QUANT_API_KEY }}
-          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          api_key: fixture-api-key-not-real
+          organization: ci-fixture
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io
+          base_url: http://127.0.0.1:18765
           operation: list
 
       - name: Verify .env file parsing
@@ -313,11 +323,11 @@ jobs:
       - name: Test 15 - Set with combined inputs (replace mode)
         uses: ./
         with:
-          api_key: ${{ secrets.QUANT_API_KEY }}
-          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          api_key: fixture-api-key-not-real
+          organization: ci-fixture
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io
+          base_url: http://127.0.0.1:18765
           operation: set
           replace: true
           env_file: base.env
@@ -328,11 +338,11 @@ jobs:
         id: list-combined
         uses: ./
         with:
-          api_key: ${{ secrets.QUANT_API_KEY }}
-          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          api_key: fixture-api-key-not-real
+          organization: ci-fixture
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io
+          base_url: http://127.0.0.1:18765
           operation: list
 
       - name: Verify combined input priority
@@ -350,22 +360,22 @@ jobs:
       - name: Test 17 - Final clear (bulk API)
         uses: ./
         with:
-          api_key: ${{ secrets.QUANT_API_KEY }}
-          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          api_key: fixture-api-key-not-real
+          organization: ci-fixture
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io
+          base_url: http://127.0.0.1:18765
           operation: clear
 
       - name: Test 18 - Final list (should be empty)
         id: list-final
         uses: ./
         with:
-          api_key: ${{ secrets.QUANT_API_KEY }}
-          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          api_key: fixture-api-key-not-real
+          organization: ci-fixture
           app_name: actions
           environment_name: staging
-          base_url: https://portal.stage.quantcdn.io
+          base_url: http://127.0.0.1:18765
           operation: list
 
       - name: Verify final clear
@@ -379,29 +389,29 @@ jobs:
 
       # Summary
       - name: Test Summary
-        if: always()
+        if: success()
         run: |
-          echo "## Test Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ All environment variable operations tested successfully!" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Tests Performed:" >> $GITHUB_STEP_SUMMARY
-          echo "1. ✅ Clear all variables" >> $GITHUB_STEP_SUMMARY
-          echo "2. ✅ List empty variables" >> $GITHUB_STEP_SUMMARY
-          echo "3. ✅ Set variables (merge mode)" >> $GITHUB_STEP_SUMMARY
-          echo "4. ✅ List variables" >> $GITHUB_STEP_SUMMARY
-          echo "5. ✅ Add more variables (merge mode preserves existing)" >> $GITHUB_STEP_SUMMARY
-          echo "6. ✅ Set from JSON input" >> $GITHUB_STEP_SUMMARY
-          echo "7. ✅ Delete specific variables" >> $GITHUB_STEP_SUMMARY
-          echo "8. ✅ Set with replace mode (bulk API)" >> $GITHUB_STEP_SUMMARY
-          echo "9. ✅ Set from .env file" >> $GITHUB_STEP_SUMMARY
-          echo "10. ✅ Set with combined inputs (priority test)" >> $GITHUB_STEP_SUMMARY
-          echo "11. ✅ Final clear" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### API Endpoints Tested:" >> $GITHUB_STEP_SUMMARY
-          echo "- LIST: listEnvironmentVariables" >> $GITHUB_STEP_SUMMARY
-          echo "- SET (merge): updateEnvironmentVariable (individual)" >> $GITHUB_STEP_SUMMARY
-          echo "- SET (replace): bulkSetEnvironmentVariables (bulk)" >> $GITHUB_STEP_SUMMARY
-          echo "- CLEAR: bulkSetEnvironmentVariables (empty array)" >> $GITHUB_STEP_SUMMARY
-          echo "- DELETE: deleteEnvironmentVariable" >> $GITHUB_STEP_SUMMARY
+          echo "## Test Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ All environment variable operations tested successfully!" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Tests Performed:" >> "$GITHUB_STEP_SUMMARY"
+          echo "1. ✅ Clear all variables" >> "$GITHUB_STEP_SUMMARY"
+          echo "2. ✅ List empty variables" >> "$GITHUB_STEP_SUMMARY"
+          echo "3. ✅ Set variables (merge mode)" >> "$GITHUB_STEP_SUMMARY"
+          echo "4. ✅ List variables" >> "$GITHUB_STEP_SUMMARY"
+          echo "5. ✅ Add more variables (merge mode preserves existing)" >> "$GITHUB_STEP_SUMMARY"
+          echo "6. ✅ Set from JSON input" >> "$GITHUB_STEP_SUMMARY"
+          echo "7. ✅ Delete specific variables" >> "$GITHUB_STEP_SUMMARY"
+          echo "8. ✅ Set with replace mode (bulk API)" >> "$GITHUB_STEP_SUMMARY"
+          echo "9. ✅ Set from .env file" >> "$GITHUB_STEP_SUMMARY"
+          echo "10. ✅ Set with combined inputs (priority test)" >> "$GITHUB_STEP_SUMMARY"
+          echo "11. ✅ Final clear" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### API Endpoints Tested:" >> "$GITHUB_STEP_SUMMARY"
+          echo "- LIST: listEnvironmentVariables" >> "$GITHUB_STEP_SUMMARY"
+          echo "- SET (merge): updateEnvironmentVariable (individual)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- SET (replace): bulkSetEnvironmentVariables (bulk)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- CLEAR: bulkSetEnvironmentVariables (empty array)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- DELETE: deleteEnvironmentVariable" >> "$GITHUB_STEP_SUMMARY"
 

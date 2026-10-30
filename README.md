@@ -330,3 +330,9 @@ fix. A `setup-node` workflow step changes the job shell runtime, not the Node
 binary GitHub uses to execute actions. A pre-run check rejects vulnerable
 runner versions before action API calls. Use the current maintained action tag
 or its immutable release SHA; historical pinned releases do not update themselves.
+
+CI runs the full variable lifecycle against an isolated stateful HTTP fixture using
+the committed action bundle. The old shared staging fixture was already failing
+before this security update. Live Cloud integration remains available as the
+manual `test-live.yml` workflow and requires an explicitly designated disposable
+application/environment; those variables are cleared during the test.
