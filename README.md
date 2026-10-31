@@ -152,7 +152,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       # Clear existing variables
       - name: Clear old variables
         uses: quantcdn/quant-cloud-environment-var-action@v1
@@ -162,7 +162,7 @@ jobs:
           app_name: my-app
           environment_name: production
           operation: clear
-      
+
       # Set new variables from .env file
       - name: Set production variables
         uses: quantcdn/quant-cloud-environment-var-action@v1
@@ -176,7 +176,7 @@ jobs:
           variables: |
             BUILD_NUMBER=${{ github.run_number }}
             COMMIT_SHA=${{ github.sha }}
-      
+
       # List variables for verification
       - name: List variables
         id: list-vars
@@ -187,7 +187,7 @@ jobs:
           app_name: my-app
           environment_name: production
           operation: list
-      
+
       - name: Show variable count
         run: echo "Total variables: ${{ steps.list-vars.outputs.count }}"
 ```
@@ -246,10 +246,10 @@ Supports three input methods that can be combined:
    - Supports `KEY=VALUE` format
    - Handles comments (lines starting with #)
    - Strips quotes from values
-   
+
 2. **json_vars**: JSON object as a string
    - Must be valid JSON: `{"KEY": "value", ...}`
-   
+
 3. **variables**: Individual KEY=VALUE pairs
    - Newline or comma-separated
    - Example: `KEY1=value1\nKEY2=value2`
@@ -321,3 +321,18 @@ node test-dist/test-local.js
 ## Unreleased
 
 * Fix: a `base_url` ending in `/api/v3` (or `/api`) no longer produces a doubled `/api/v3/api/v3` request path.
+
+## Runner security requirement
+
+This action uses the runner's embedded Node 24, which must be 24.22.1 or later
+for CVE-2026-111497. Update self-hosted runner containers/binaries to apply the
+fix. A `setup-node` workflow step changes the job shell runtime, not the Node
+binary GitHub uses to execute actions. A pre-run check rejects vulnerable
+runner versions before action API calls. Use the current maintained action tag
+or its immutable release SHA; historical pinned releases do not update themselves.
+
+CI runs the full variable lifecycle against an isolated stateful HTTP fixture using
+the committed action bundle. The old shared staging fixture was already failing
+before this security update. Live Cloud integration remains available as the
+manual `test-live.yml` workflow and requires an explicitly designated disposable
+application/environment; those variables are cleared during the test.
